@@ -40,19 +40,29 @@ func ConectaComBancoDeDados() {
 
 	stringDeConexao := "host=" + host + " user=" + user + " password=" + password + " dbname=" + dbname + " port=" + port + " sslmode=disable"
 
-	// retry logic: try for up to ~30 seconds
-	for i := 0; i < 15; i++ {
+	// retry logic: try for up to ~90 seconds (30 tries * 3s)
+	for i := 0; i < 30; i++ {
 		DB, err = gorm.Open(postgres.Open(stringDeConexao))
 		if err == nil {
-			break
+			// try to ping the underlying sql DB
+			sqlDB, derr := DB.DB()
+			if derr == nil {
+				if perr := sqlDB.Ping(); perr != nil {
+					err = perr
+				} else {
+					err = nil
+					break
+				}
+			} else {
+				err = derr
+			}
 		}
 		// sleep a bit and try again
-		// Use time.Sleep without import collision
-		// import time
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 	if err != nil {
-		log.Panic("Erro ao conectar com banco de dados")
+		// include the error message to help CI debugging
+		log.Panicf("Erro ao conectar com banco de dados: %v", err)
 	}
 
 	DB.AutoMigrate(&models.Aluno{})
