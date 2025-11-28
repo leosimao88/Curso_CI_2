@@ -1,8 +1,9 @@
 package database
 
 import (
-	"log"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 	"github.com/guilhermeonrails/api-go-gin/models"
 	"gorm.io/driver/postgres"
@@ -13,8 +14,7 @@ var (
 	DB  *gorm.DB
 	err error
 )
-
-func ConectaComBancoDeDados() {
+func ConectaComBancoDeDados() error {
 	// Use explicit DB_* env variables to avoid clobbering system vars (e.g. USER)
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
@@ -61,9 +61,36 @@ func ConectaComBancoDeDados() {
 		time.Sleep(3 * time.Second)
 	}
 	if err != nil {
-		// include the error message to help CI debugging
-		log.Panicf("Erro ao conectar com banco de dados: %v", err)
+		// If the error is "database does not exist", try to create it using the default 'postgres' DB
+		if strings.Contains(strings.ToLower(err.Error()), "does not exist") || strings.Contains(err.Error(), "3D000") {
+			// connect to default postgres db
+			adminDSN := "host=" + host + " user=" + user + " password=" + password + " dbname=postgres port=" + port + " sslmode=disable"
+			adminDB, aerr := gorm.Open(postgres.Open(adminDSN))
+			if aerr != nil {
+				return fmt.Errorf("failed to connect to admin DB to create database %s: %v", dbname, aerr)
+			}
+			// create DB
+			createQuery := fmt.Sprintf("CREATE DATABASE %s", dbname)
+			if execErr := adminDB.Exec(createQuery).Error; execErr != nil {
+				return fmt.Errorf("failed to create database %s: %v", dbname, execErr)
+			}
+			// close adminDB and try again once
+			sqlAdmin, derr := adminDB.DB()
+			if derr == nil {
+				sqlAdmin.Close()
+			}
+			// try to connect again
+			DB, err = gorm.Open(postgres.Open(stringDeConexao))
+			if err != nil {
+				return fmt.Errorf("failed to connect to newly created database %s: %v", dbname, err)
+			}
+		} else {
+			return fmt.Errorf("erro ao conectar com banco de dados: %v", err)
+		}
 	}
 
-	DB.AutoMigrate(&models.Aluno{})
+	if amErr := DB.AutoMigrate(&models.Aluno{}); amErr != nil {
+		return fmt.Errorf("failed to run automigrate: %v", amErr)
+	}
+	return nil
 }

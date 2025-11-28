@@ -48,7 +48,9 @@ func TestVerificaStatusCodeDaSaudacaoComParametro(t *testing.T) {
 }
 
 func TestListaTodosOsAlunosHanlder(t *testing.T) {
-	database.ConectaComBancoDeDados()
+	if err := database.ConectaComBancoDeDados(); err != nil {
+		t.Fatalf("Erro ao conectar com banco de dados: %v", err)
+	}
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
 	r := SetupDasRotasDeTeste()
@@ -60,7 +62,9 @@ func TestListaTodosOsAlunosHanlder(t *testing.T) {
 }
 
 func TestBucaAlunoPorCPFHandler(t *testing.T) {
-	database.ConectaComBancoDeDados()
+	if err := database.ConectaComBancoDeDados(); err != nil {
+		t.Fatalf("Erro ao conectar com banco de dados: %v", err)
+	}
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
 	r := SetupDasRotasDeTeste()
@@ -72,7 +76,9 @@ func TestBucaAlunoPorCPFHandler(t *testing.T) {
 }
 
 func TestBuscaAlunoPorIDHandler(t *testing.T) {
-	database.ConectaComBancoDeDados()
+	if err := database.ConectaComBancoDeDados(); err != nil {
+		t.Fatalf("Erro ao conectar com banco de dados: %v", err)
+	}
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
 	r := SetupDasRotasDeTeste()
@@ -90,7 +96,9 @@ func TestBuscaAlunoPorIDHandler(t *testing.T) {
 }
 
 func TestDeletaAlunoHandler(t *testing.T) {
-	database.ConectaComBancoDeDados()
+	if err := database.ConectaComBancoDeDados(); err != nil {
+		t.Fatalf("Erro ao conectar com banco de dados: %v", err)
+	}
 	CriaAlunoMock()
 	r := SetupDasRotasDeTeste()
 	r.DELETE("/alunos/:id", controllers.DeletarAluno)
@@ -102,7 +110,9 @@ func TestDeletaAlunoHandler(t *testing.T) {
 }
 
 func TestEditaUmAlunoHandler(t *testing.T) {
-	database.ConectaComBancoDeDados()
+	if err := database.ConectaComBancoDeDados(); err != nil {
+		t.Fatalf("Erro ao conectar com banco de dados: %v", err)
+	}
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
 	r := SetupDasRotasDeTeste()
