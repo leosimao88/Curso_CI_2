@@ -11,11 +11,11 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     env: 
-      HOST: localhost
-      PORT: 5432
-      USER: root
-      PASSWORD: root
-      DBNAME: root
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: root
     strategy:
       matrix:
         go_version: ['1.18', '1.17', '>=1.18']
@@ -33,6 +33,22 @@ jobs:
       
     - name: Create-DB
       run: docker compose up -d
+
+    - name: Wait for DB to be ready
+      run: |
+        echo "Waiting for Postgres to become available..."
+        # Wait for container to be up and port exposed
+        for i in {1..30}; do
+          nc -z localhost 5432 && break || true
+          echo "Waiting for Postgres port... ($i)"
+          sleep 1
+        done
+        # Try to ensure DB service is ready using pg_isready inside container
+        for i in {1..30}; do
+          docker compose exec -T postgres pg_isready -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} && break || true
+          echo "Checking Postgres readiness... ($i)"
+          sleep 1
+        done
 
     - name: Test
       run: go test -v main_test.go 
